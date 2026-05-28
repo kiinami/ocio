@@ -1,0 +1,43 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "debug-configure",
+      "displayName": "Debug",
+      "binaryDir": "${sourceDir}/cmake-build-debug",
+      "generator": "Ninja",
+      "toolchainFile":
+      "${sourceDir}/cmake-build-debug/generators/conan_toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-configure",
+      "displayName": "Release",
+      "binaryDir": "${sourceDir}/cmake-build-release",
+      "generator": "Ninja",
+      "toolchainFile":
+      "${sourceDir}/cmake-build-release/generators/conan_toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "configurePreset": "debug-configure",
+      "jobs": 10,
+      "targets": [ "ocio_opengl" ]
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "configurePreset": "release-configure",
+      "jobs": 10,
+      "targets": [ "ocio_opengl" ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 // Settings ///////////////////////////////////////////////////////////////////
 
@@ -162,6 +163,14 @@ void load_geometry() {
   glBindVertexArray(0);
 }
 
+void update_uniforms(void) {
+  const double time = glfwGetTime();
+  const float g = (float)(sin(time) / 2.0f + 0.5f);
+
+  const int uniform_location = glGetUniformLocation(shader_program_, "color");
+  glUniform4f(uniform_location, 0.0f, g, 0.0f, 1.0f);
+}
+
 void render_loop(void) {
   while (!glfwWindowShouldClose(window_)) {
     process_input(window_);
@@ -169,6 +178,7 @@ void render_loop(void) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shader_program_);
+    update_uniforms();
     glBindVertexArray(VAO_);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 

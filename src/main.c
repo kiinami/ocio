@@ -1,10 +1,11 @@
 #include "glad/gl.h"
+#include "shader.h"
 
 #include <GLFW/glfw3.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 
 // Settings ///////////////////////////////////////////////////////////////////
 
@@ -54,93 +55,29 @@ void load_glad(void) {
 
 void init_opengl(void) { glClearColor(0.2f, 0.3f, 0.3f, 1.0f); }
 
-char* read_file(const char* path, size_t* size) {
-  FILE* file = fopen(path, "rb");
-  if (!file) return NULL;
-
-  fseek(file, 0, SEEK_END);
-  const size_t length = (size_t) ftell(file);
-  rewind(file);
-
-  char* buffer = malloc(length + 1);
-  if (!buffer) {
-    fclose(file);
-    return NULL;
-  }
-
-  const size_t read = fread(buffer, 1, length, file);
-  fclose(file);
-
-  if (read != length) {
-    free(buffer);
-    return NULL;
-  }
-
-  if (size) *size = length;
-
-  return buffer;
-}
-
-unsigned int load_shader(const char* path, const GLenum type) {
-  const unsigned int shader = glCreateShader(type);
-
-  size_t source_size;
-  char* source = read_file(path, &source_size);
-  if (!source) {
-    free(source);
-    glDeleteShader(shader);
-    return 0;
-  }
-
-  const char* src = source;
-  glShaderSource(shader, 1, &src, (GLint*) &source_size);
-  free(source);
-
-  glCompileShader(shader);
-
-  int success;
-  char log[512];
-
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-
-  if (!success) {
-    glGetShaderInfoLog(shader, 512, NULL, log);
-    printf("Shader compile error\nPath: %s\nError:\n %s", path, log);
-  }
-
-  return shader;
-}
-
-void set_shaders(
-  const char* vertex_shader_path, const char* fragment_shader_path
-) {
-  const unsigned int vertex_shader =
-    load_shader(vertex_shader_path, GL_VERTEX_SHADER);
-  const unsigned int fragment_shader =
-    load_shader(fragment_shader_path, GL_FRAGMENT_SHADER);
-
-  shader_program_ = glCreateProgram();
-  glAttachShader(shader_program_, vertex_shader);
-  glAttachShader(shader_program_, fragment_shader);
-  glLinkProgram(shader_program_);
-
-  int success;
-  char log[512];
-  glGetProgramiv(shader_program_, GL_LINK_STATUS, &success);
-  if (!success) {
-    glGetProgramInfoLog(shader_program_, 512, NULL, log);
-    printf("Shader link error\nError:\n %s", log);
-  }
-
-  glDeleteShader(vertex_shader);
-  glDeleteShader(fragment_shader);
-}
-
 void load_geometry() {
   const float vertices[] = {
-    0.5f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f
+    // positions         // colors
+    0.5f,
+    -0.5f,
+    0.0f,
+    1.0f,
+    0.0f,
+    0.0f, // bottom right
+    -0.5f,
+    -0.5f,
+    0.0f,
+    0.0f,
+    1.0f,
+    0.0f, // bottom left
+    0.0f,
+    0.5f,
+    0.0f,
+    0.0f,
+    0.0f,
+    1.0f // top
   };
-  const unsigned int indices[] = {0, 1, 3, 1, 2, 3};
+  const unsigned int indices[] = {0, 1, 2};
 
   glGenVertexArrays(1, &VAO_);
   glGenBuffers(1, &VBO_);
@@ -156,19 +93,16 @@ void load_geometry() {
     GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW
   );
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*) 0);
   glEnableVertexAttribArray(0);
+
+  glVertexAttribPointer(
+    1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*) (3 * sizeof(float))
+  );
+  glEnableVertexAttribArray(1);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
-}
-
-void update_uniforms(void) {
-  const double time = glfwGetTime();
-  const float g = (float)(sin(time) / 2.0f + 0.5f);
-
-  const int uniform_location = glGetUniformLocation(shader_program_, "color");
-  glUniform4f(uniform_location, 0.0f, g, 0.0f, 1.0f);
 }
 
 void render_loop(void) {
@@ -178,7 +112,6 @@ void render_loop(void) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shader_program_);
-    update_uniforms();
     glBindVertexArray(VAO_);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -215,7 +148,8 @@ int main(void) {
   create_window();
   load_glad();
   init_opengl();
-  set_shaders("../src/shaders/shader.vert", "../src/shaders/shader.frag");
+  shader_program_ =
+    load_shaders("../src/shaders/shader.vert", "../src/shaders/shader.frag");
   load_geometry();
 
   render_loop();

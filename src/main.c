@@ -17,7 +17,7 @@ GLFWwindow* window_;
 
 unsigned int shader_program_;
 
-unsigned int VBO_, VAO_;
+unsigned int VBO_, VAO_, EBO_;
 
 // Forward declarations ///////////////////////////////////////////////////////
 
@@ -51,9 +51,7 @@ void load_glad(void) {
   if (!gladLoadGL(glfwGetProcAddress)) printf("Failed to initialize GLAD\n");
 }
 
-void init_opengl(void) {
-  glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-}
+void init_opengl(void) { glClearColor(0.2f, 0.3f, 0.3f, 1.0f); }
 
 char* read_file(const char* path, size_t* size) {
   FILE* file = fopen(path, "rb");
@@ -138,17 +136,26 @@ void set_shaders(
 }
 
 void load_geometry() {
-  float vertices[] = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
+  const float vertices[] = {
+    0.5f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, -0.5f, 0.0f, -0.5f, 0.5f, 0.0f
+  };
+  const unsigned int indices[] = {0, 1, 3, 1, 2, 3};
 
   glGenVertexArrays(1, &VAO_);
   glGenBuffers(1, &VBO_);
+  glGenBuffers(1, &EBO_);
 
   glBindVertexArray(VAO_);
   glBindBuffer(GL_ARRAY_BUFFER, VBO_);
 
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_);
+  glBufferData(
+    GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW
+  );
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
   glEnableVertexAttribArray(0);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -163,7 +170,7 @@ void render_loop(void) {
 
     glUseProgram(shader_program_);
     glBindVertexArray(VAO_);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     glfwSwapBuffers(window_);
     glfwPollEvents();
@@ -173,11 +180,10 @@ void render_loop(void) {
 void destroy_geometry() {
   glDeleteVertexArrays(1, &VAO_);
   glDeleteBuffers(1, &VBO_);
+  glDeleteBuffers(1, &EBO_);
 }
 
-void destroy_shaders() {
-  glDeleteProgram(shader_program_);
-}
+void destroy_shaders() { glDeleteProgram(shader_program_); }
 
 void destroy_glfw(void) { glfwTerminate(); }
 
